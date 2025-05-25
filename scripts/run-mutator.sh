@@ -165,8 +165,42 @@ fi
 
 # Create GitHub Actions summary table
 echo "📊 Creating workflow summary..."
+
+# Determine if we're in a matrix build and create appropriate title
+MATRIX_INFO=""
+if [ -n "$GITHUB_JOB" ]; then
+  # Try to detect matrix variables from common environment variables
+  MATRIX_VARS=""
+  
+  # Check for common matrix variables
+  if [ -n "$MATRIX_OS" ]; then
+    MATRIX_VARS="${MATRIX_VARS}OS: $MATRIX_OS "
+  fi
+  if [ -n "$MATRIX_PYTHON_VERSION" ] || [ -n "$MATRIX_PYTHON" ]; then
+    PYTHON_VER="${MATRIX_PYTHON_VERSION:-$MATRIX_PYTHON}"
+    MATRIX_VARS="${MATRIX_VARS}Python: $PYTHON_VER "
+  fi
+  if [ -n "$MATRIX_NODE_VERSION" ] || [ -n "$MATRIX_NODE" ]; then
+    NODE_VER="${MATRIX_NODE_VERSION:-$MATRIX_NODE}"
+    MATRIX_VARS="${MATRIX_VARS}Node: $NODE_VER "
+  fi
+  
+  # Add any other matrix variables from environment
+  for var in $(env | grep '^MATRIX_' | cut -d= -f1); do
+    if [[ ! "$var" =~ ^MATRIX_(OS|PYTHON|NODE) ]]; then
+      value=$(eval echo \$$var)
+      clean_var=$(echo "$var" | sed 's/MATRIX_//' | tr '[:upper:]' '[:lower:]')
+      MATRIX_VARS="${MATRIX_VARS}${clean_var}: $value "
+    fi
+  done
+  
+  if [ -n "$MATRIX_VARS" ]; then
+    MATRIX_INFO=" ($MATRIX_VARS)"
+  fi
+fi
+
 cat >> $GITHUB_STEP_SUMMARY << EOF
-# 🧬 Mutation Testing Results
+# 🧬 Mutation Testing Results${MATRIX_INFO}
 
 ## Summary
 | Metric | Value |
@@ -233,5 +267,13 @@ cat >> $GITHUB_STEP_SUMMARY << EOF
 ---
 *Mutation testing completed with Obrasa Tree Mutator*
 EOF
+
+# Add matrix build note if applicable
+if [ -n "$MATRIX_INFO" ]; then
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+
+> **Note**: This is one job in a matrix build. Each matrix combination will have its own summary.
+EOF
+fi
 
 echo "Mutation testing completed successfully" 
