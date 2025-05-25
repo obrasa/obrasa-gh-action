@@ -30,11 +30,17 @@ $MUTATOR_BINARY test --config "$CONFIG_PATH"
 
 # Extract mutation score from the JSON report
 MUTATION_SCORE="0.0"
+APPLIED=0
+KILLED=0
+SURVIVED=0
+TIMEOUT=0
+ERROR=0
+
 if [ -f "mutation-report.json" ]; then
   echo "Found mutation-report.json, extracting score..."
   
-  # Extract mutation score using the actual JSON structure
-  MUTATION_SCORE=$(python3 -c "
+  # Extract mutation score and detailed metrics using the actual JSON structure
+  METRICS=$(python3 -c "
 import json
 import sys
 try:
@@ -45,18 +51,24 @@ try:
     summary = data.get('summary', {})
     applied = summary.get('applied', 0)
     killed = summary.get('killed', 0)
+    survived = summary.get('survived', 0)
+    timeout = summary.get('timeout', 0)
+    error = summary.get('error', 0)
     
     # Calculate mutation score
     if applied > 0:
         score = (killed / applied) * 100
-        print(f'{score:.1f}')
+        print(f'{score:.1f}|{applied}|{killed}|{survived}|{timeout}|{error}')
     else:
-        print('0.0')
+        print('0.0|0|0|0|0|0')
         
 except Exception as e:
-    print('0.0')
+    print('0.0|0|0|0|0|0')
     print(f'Error parsing JSON: {e}', file=sys.stderr)
-" 2>/dev/null || echo "0.0")
+" 2>/dev/null || echo "0.0|0|0|0|0|0")
+
+  # Parse the metrics
+  IFS='|' read -r MUTATION_SCORE APPLIED KILLED SURVIVED TIMEOUT ERROR <<< "$METRICS"
 else
   echo "No mutation-report.json found"
   MUTATION_SCORE="0.0"
@@ -150,5 +162,76 @@ if [ ${#REPORT_FILES[@]} -gt 0 ]; then
 else
   echo "⚠️  No mutation reports found to archive"
 fi
+
+# Create GitHub Actions summary table
+echo "📊 Creating workflow summary..."
+cat >> $GITHUB_STEP_SUMMARY << EOF
+# 🧬 Mutation Testing Results
+
+## Summary
+| Metric | Value |
+|--------|-------|
+| **Mutation Score** | **${MUTATION_SCORE}%** |
+| **Applied Mutations** | ${APPLIED:-0} |
+| **Killed Mutations** | ${KILLED:-0} |
+| **Survived Mutations** | ${SURVIVED:-0} |
+| **Timeout Mutations** | ${TIMEOUT:-0} |
+| **Error Mutations** | ${ERROR:-0} |
+
+## Status
+EOF
+
+# Add target score status if specified
+if [ -n "$TARGET_SCORE" ] && [ "$TARGET_SCORE" != "" ]; then
+  if [ "$TARGET_MET" = "true" ]; then
+    cat >> $GITHUB_STEP_SUMMARY << EOF
+✅ **Target Met**: Mutation score (${MUTATION_SCORE}%) meets target (${TARGET_SCORE}%)
+EOF
+  else
+    cat >> $GITHUB_STEP_SUMMARY << EOF
+❌ **Target Not Met**: Mutation score (${MUTATION_SCORE}%) below target (${TARGET_SCORE}%)
+EOF
+  fi
+else
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+ℹ️ **No Target Set**: Mutation testing completed without score threshold
+EOF
+fi
+
+# Add reports section
+cat >> $GITHUB_STEP_SUMMARY << EOF
+
+## Generated Reports
+EOF
+
+if [ -f "mutation-report.json" ]; then
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+- 📄 JSON Report: \`mutation-report.json\`
+EOF
+fi
+
+if [ -f "mutation-report.html" ]; then
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+- 🌐 HTML Report: \`mutation-report.html\`
+EOF
+fi
+
+if [ -f "mutation-report.md" ]; then
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+- 📝 Markdown Report: \`mutation-report.md\`
+EOF
+fi
+
+if [ -f "$REPORTS_ARCHIVE" ]; then
+  cat >> $GITHUB_STEP_SUMMARY << EOF
+- 📦 Reports Archive: \`$REPORTS_ARCHIVE\`
+EOF
+fi
+
+cat >> $GITHUB_STEP_SUMMARY << EOF
+
+---
+*Mutation testing completed with Obrasa Tree Mutator*
+EOF
 
 echo "Mutation testing completed successfully" 
