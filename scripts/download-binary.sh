@@ -120,31 +120,46 @@ if [ -f "mutator" ]; then
   rm -f mutator
 fi
 
-if tar -xzf "$ARCHIVE_NAME"; then
-  echo "✅ Binary extracted successfully"
+# Check if there's a mutator directory that would conflict
+if [ -d "mutator" ]; then
+  echo "🔄 Detected mutator source directory, extracting to temporary location..."
+  # Create a temporary directory for extraction
+  TEMP_DIR=$(mktemp -d)
+  tar -xzf "$ARCHIVE_NAME" -C "$TEMP_DIR"
   
-  # The extracted binary is named 'mutator' - rename it to avoid conflicts with source directory
-  if [ -f "mutator" ] && [ -d "mutator" ]; then
-    echo "🔄 Renaming binary to avoid conflict with mutator source directory..."
-    mv mutator mutator-bin
+  # Move the binary from temp location to current directory with new name
+  if [ -f "$TEMP_DIR/mutator" ]; then
+    mv "$TEMP_DIR/mutator" "./mutator-bin"
     BINARY_NAME="mutator-bin"
+    echo "✅ Binary extracted as mutator-bin to avoid directory conflict"
   else
-    BINARY_NAME="mutator"
+    echo "❌ Expected binary not found in archive"
+    rm -rf "$TEMP_DIR"
+    exit 1
   fi
   
-  # Make sure it's executable
-  chmod +x "$BINARY_NAME"
-  
-  # Show binary info
-  echo "📦 Binary information:"
-  ls -la "$BINARY_NAME"
-  if command -v file >/dev/null 2>&1; then
-    file "$BINARY_NAME"
-  fi
-  
-  echo "✅ Download and extraction completed successfully"
-  echo "🎯 Binary available as: $BINARY_NAME"
+  # Clean up temp directory
+  rm -rf "$TEMP_DIR"
 else
-  echo "❌ Failed to extract binary from $ARCHIVE_NAME"
-  exit 1
-fi 
+  # No directory conflict, extract normally
+  if tar -xzf "$ARCHIVE_NAME"; then
+    BINARY_NAME="mutator"
+    echo "✅ Binary extracted successfully"
+  else
+    echo "❌ Failed to extract binary from $ARCHIVE_NAME"
+    exit 1
+  fi
+fi
+
+# Make sure it's executable
+chmod +x "$BINARY_NAME"
+
+# Show binary info
+echo "📦 Binary information:"
+ls -la "$BINARY_NAME"
+if command -v file >/dev/null 2>&1; then
+  file "$BINARY_NAME"
+fi
+
+echo "✅ Download and extraction completed successfully"
+echo "🎯 Binary available as: $BINARY_NAME" 
