@@ -11,8 +11,6 @@ if [ ! -f "$CONFIG_PATH" ]; then
 fi
 
 echo "Using configuration file: $CONFIG_PATH"
-echo "Configuration file contents:"
-cat "$CONFIG_PATH"
 
 # Run the mutation testing with the new --config option
 echo "Starting mutation testing..."
