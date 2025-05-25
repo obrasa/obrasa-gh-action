@@ -176,18 +176,10 @@ if [ -n "$GITHUB_JOB" ]; then
   if [ -n "$MATRIX_OS" ]; then
     MATRIX_VARS="${MATRIX_VARS}OS: $MATRIX_OS "
   fi
-  if [ -n "$MATRIX_PYTHON_VERSION" ] || [ -n "$MATRIX_PYTHON" ]; then
-    PYTHON_VER="${MATRIX_PYTHON_VERSION:-$MATRIX_PYTHON}"
-    MATRIX_VARS="${MATRIX_VARS}Python: $PYTHON_VER "
-  fi
-  if [ -n "$MATRIX_NODE_VERSION" ] || [ -n "$MATRIX_NODE" ]; then
-    NODE_VER="${MATRIX_NODE_VERSION:-$MATRIX_NODE}"
-    MATRIX_VARS="${MATRIX_VARS}Node: $NODE_VER "
-  fi
   
   # Add any other matrix variables from environment
   for var in $(env | grep '^MATRIX_' | cut -d= -f1); do
-    if [[ ! "$var" =~ ^MATRIX_(OS|PYTHON|NODE) ]]; then
+    if [[ ! "$var" =~ ^MATRIX_OS$ ]]; then
       value=$(eval echo \$$var)
       clean_var=$(echo "$var" | sed 's/MATRIX_//' | tr '[:upper:]' '[:lower:]')
       MATRIX_VARS="${MATRIX_VARS}${clean_var}: $value "
