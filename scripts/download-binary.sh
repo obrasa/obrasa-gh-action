@@ -123,17 +123,27 @@ fi
 if tar -xzf "$ARCHIVE_NAME"; then
   echo "✅ Binary extracted successfully"
   
+  # The extracted binary is named 'mutator' - rename it to avoid conflicts with source directory
+  if [ -f "mutator" ] && [ -d "mutator" ]; then
+    echo "🔄 Renaming binary to avoid conflict with mutator source directory..."
+    mv mutator mutator-bin
+    BINARY_NAME="mutator-bin"
+  else
+    BINARY_NAME="mutator"
+  fi
+  
   # Make sure it's executable
-  chmod +x mutator
+  chmod +x "$BINARY_NAME"
   
   # Show binary info
   echo "📦 Binary information:"
-  ls -la mutator
+  ls -la "$BINARY_NAME"
   if command -v file >/dev/null 2>&1; then
-    file mutator
+    file "$BINARY_NAME"
   fi
   
   echo "✅ Download and extraction completed successfully"
+  echo "🎯 Binary available as: $BINARY_NAME"
 else
   echo "❌ Failed to extract binary from $ARCHIVE_NAME"
   exit 1

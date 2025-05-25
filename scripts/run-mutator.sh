@@ -16,7 +16,19 @@ cat "$CONFIG_PATH"
 
 # Run the mutation testing with the new --config option
 echo "Starting mutation testing..."
-./mutator test --config "$CONFIG_PATH"
+
+# Determine which binary to use (handle renamed binary to avoid directory conflicts)
+if [ -f "./mutator-bin" ]; then
+  MUTATOR_BINARY="./mutator-bin"
+elif [ -f "./mutator" ]; then
+  MUTATOR_BINARY="./mutator"
+else
+  echo "❌ Error: No mutator binary found (looked for ./mutator and ./mutator-bin)"
+  exit 1
+fi
+
+echo "Using binary: $MUTATOR_BINARY"
+$MUTATOR_BINARY test --config "$CONFIG_PATH"
 
 # Extract mutation score from the JSON report
 MUTATION_SCORE="0.0"
