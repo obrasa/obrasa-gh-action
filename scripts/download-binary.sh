@@ -113,6 +113,13 @@ fi
 
 # Extract the binary
 echo "Extracting binary from $ARCHIVE_NAME..."
+
+# Remove any existing mutator binary to avoid conflicts
+if [ -f "mutator" ]; then
+  echo "🧹 Removing existing mutator binary..."
+  rm -f mutator
+fi
+
 if tar -xzf "$ARCHIVE_NAME"; then
   echo "✅ Binary extracted successfully"
   
