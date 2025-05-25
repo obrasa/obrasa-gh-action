@@ -122,4 +122,33 @@ else
   echo "target-met=true" >> $GITHUB_OUTPUT
 fi
 
+# Create a zip archive of all mutation reports
+echo "📦 Creating mutation reports archive..."
+REPORTS_ARCHIVE="mutation-reports.zip"
+
+# Check which reports exist and add them to the archive
+REPORT_FILES=()
+if [ -f "mutation-report.json" ]; then
+  REPORT_FILES+=("mutation-report.json")
+fi
+if [ -f "mutation-report.html" ]; then
+  REPORT_FILES+=("mutation-report.html")
+fi
+if [ -f "mutation-report.md" ]; then
+  REPORT_FILES+=("mutation-report.md")
+fi
+
+# Create zip archive if we have reports
+if [ ${#REPORT_FILES[@]} -gt 0 ]; then
+  zip -q "$REPORTS_ARCHIVE" "${REPORT_FILES[@]}"
+  echo "✅ Created reports archive: $REPORTS_ARCHIVE"
+  echo "📋 Archive contents:"
+  unzip -l "$REPORTS_ARCHIVE"
+  
+  # Set archive path as output
+  echo "reports-archive=$REPORTS_ARCHIVE" >> $GITHUB_OUTPUT
+else
+  echo "⚠️  No mutation reports found to archive"
+fi
+
 echo "Mutation testing completed successfully" 

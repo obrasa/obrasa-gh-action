@@ -32,6 +32,9 @@ outputs:
   report-markdown:
     description: 'Path to the generated Markdown mutation report'
     value: ${{ steps.run-mutator.outputs.report-markdown }}
+  reports-archive:
+    description: 'Path to the zip archive containing all mutation reports'
+    value: ${{ steps.run-mutator.outputs.reports-archive }}
   target-met:
     description: 'Whether the mutation score met the target threshold (true/false)'
     value: ${{ steps.run-mutator.outputs.target-met }}
@@ -54,15 +57,12 @@ runs:
         TARGET_SCORE: ${{ inputs.target-score }}
       run: ${{ github.action_path }}/scripts/run-mutator.sh
     
-    - name: Upload Mutation Reports
+    - name: Upload Mutation Reports Archive
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: mutation-reports
-        path: |
-          mutation-report.html
-          mutation-report.json
-          mutation-report.md
+        name: mutation-reports-archive
+        path: mutation-reports.zip
         retention-days: 30
 
 branding:
