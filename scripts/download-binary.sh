@@ -73,6 +73,10 @@ download_asset() {
 ARCHIVE_NAME="${BINARY_NAME}-${VERSION}.tar.gz"
 echo "Looking for binary archive: $ARCHIVE_NAME"
 
+# Debug: Show all available assets
+echo "📋 Available assets in release $VERSION:"
+echo "$ASSETS_INFO" | grep '"name":' | sed 's/.*"name": "\([^"]*\)".*/  - \1/' | head -10
+
 if download_asset "$ARCHIVE_NAME" "$ARCHIVE_NAME"; then
   echo "✅ Downloaded native binary: $ARCHIVE_NAME"
 else
@@ -89,12 +93,20 @@ else
       echo "❌ No compatible binary found for $OS $ARCH_NAME"
       echo "Available assets:"
       echo "$ASSETS_INFO" | grep '"name":' | grep -E '\.(tar\.gz|zip)' | sed 's/.*"name": "\([^"]*\)".*/  - \1/'
+      
+      # Debug: Show raw API response if no assets found
+      echo "🔍 Raw API response for debugging:"
+      echo "$ASSETS_INFO" | head -50
       exit 1
     fi
   else
     echo "❌ Binary not found: $ARCHIVE_NAME"
     echo "Available assets:"
     echo "$ASSETS_INFO" | grep '"name":' | grep -E '\.(tar\.gz|zip)' | sed 's/.*"name": "\([^"]*\)".*/  - \1/'
+    
+    # Debug: Show raw API response if no assets found
+    echo "🔍 Raw API response for debugging:"
+    echo "$ASSETS_INFO" | head -50
     exit 1
   fi
 fi
