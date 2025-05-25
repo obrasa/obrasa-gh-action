@@ -1,0 +1,70 @@
+name: 'Obrasa Tree Mutator'
+description: 'Run mutation testing using the Obrasa Tree Mutator on your codebase'
+author: 'Obrasa'
+
+inputs:
+  config-path:
+    description: 'Path to the obrasa.yaml configuration file'
+    required: false
+    default: 'obrasa.yaml'
+  version:
+    description: 'Version of tree-mutator to use (e.g., v1.0.0). Defaults to latest release'
+    required: false
+    default: 'latest'
+  github-token:
+    description: 'GitHub token for downloading private repository releases'
+    required: true
+  target-score:
+    description: 'Target mutation score percentage (e.g., 80). If set, the action will fail if the score is below this threshold'
+    required: false
+    default: ''
+
+outputs:
+  mutation-score:
+    description: 'The mutation score percentage'
+    value: ${{ steps.run-mutator.outputs.mutation-score }}
+  report-json:
+    description: 'Path to the generated JSON mutation report'
+    value: ${{ steps.run-mutator.outputs.report-json }}
+  report-html:
+    description: 'Path to the generated HTML mutation report'
+    value: ${{ steps.run-mutator.outputs.report-html }}
+  report-markdown:
+    description: 'Path to the generated Markdown mutation report'
+    value: ${{ steps.run-mutator.outputs.report-markdown }}
+  target-met:
+    description: 'Whether the mutation score met the target threshold (true/false)'
+    value: ${{ steps.run-mutator.outputs.target-met }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download Tree Mutator Binary
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        VERSION: ${{ inputs.version }}
+      run: ${{ github.action_path }}/scripts/download-binary.sh
+    
+    - name: Run Tree Mutator
+      id: run-mutator
+      shell: bash
+      env:
+        CONFIG_PATH: ${{ inputs.config-path }}
+        TARGET_SCORE: ${{ inputs.target-score }}
+      run: ${{ github.action_path }}/scripts/run-mutator.sh
+    
+    - name: Upload Mutation Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mutation-reports
+        path: |
+          mutation-report.html
+          mutation-report.json
+          mutation-report.md
+        retention-days: 30
+
+branding:
+  icon: 'zap'
+  color: 'orange' 
